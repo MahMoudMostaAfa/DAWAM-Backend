@@ -7,6 +7,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using Dawam_backend.Services.Interfaces;
+using Dawam_backend.Services;
 
 namespace Dawam_backend
 {
@@ -47,6 +49,10 @@ namespace Dawam_backend
 
             // Add authorization services (for role-based access control)
             builder.Services.AddAuthorization();
+
+            // Register services for DI
+            builder.Services.AddScoped<IJobService, JobService>();
+            builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 
             // Add services to the container.
@@ -103,6 +109,7 @@ namespace Dawam_backend
             {
                 var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
                 var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+                var dbContext = services.GetRequiredService<ApplicationDbContext>();
 
                 var adminEmail = "admin@dawam.com";
                 var adminPassword = "Admin@12345"; // Secure password
@@ -128,6 +135,16 @@ namespace Dawam_backend
                     {
                         await userManager.AddToRoleAsync(adminUser, "Admin");
                     }
+
+
+                    if (!dbContext.Categories.Any())
+                    {
+                        dbContext.Categories.Add(new Category
+                        {
+                            Name = "Software Development",
+                        });
+                        await dbContext.SaveChangesAsync();
+                    }
                 }
             }
 
@@ -135,6 +152,15 @@ namespace Dawam_backend
             {
                 var services = scope.ServiceProvider;
                 SeedAdminUserAsync(services).GetAwaiter().GetResult();
+            }
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                var context = services.GetRequiredService<ApplicationDbContext>();
+
+                // Seed jobs if necessary
+                SeedJobs(context);
             }
 
 
@@ -159,5 +185,47 @@ namespace Dawam_backend
 
             app.Run();
         }
+
+        private static void SeedJobs(ApplicationDbContext context)
+        {
+            if (!context.Jobs.Any()) // Check if there are any jobs in the database
+            {
+                var categoryId = context.Categories.FirstOrDefault()?.Id; // Get a valid category or use a default ID
+                var userId = "c714889a-ea76-4d9f-bd86-6f5ba16c6801"; // Replace this with an actual user ID, for example an admin user ID
+
+                var jobs = new List<Job>
+        {
+            new Job
+            {
+                Title = "Software Engineer",
+                Description = "Responsible for developing and maintaining software applications.",
+                Requirements = "C#, .NET, SQL",
+                CategoryId = categoryId,
+                CareerLevel = "Mid-Level",
+                JobType = "Full-Time",
+                Location = "Remote",
+                PostedBy = userId,
+                CreatedAt = DateTime.UtcNow
+            },
+            new Job
+            {
+                Title = "Data Scientist",
+                Description = "Work on analyzing large datasets to provide business insights.",
+                Requirements = "Python, Machine Learning, SQL",
+                CategoryId = categoryId,
+                CareerLevel = "Senior",
+                JobType = "Full-Time",
+                Location = "On-Site",
+                PostedBy = userId,
+                CreatedAt = DateTime.UtcNow
+            }
+        };
+
+                context.Jobs.AddRange(jobs);
+                context.SaveChanges();
+            }
+        }
     }
+
+
 }
