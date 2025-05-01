@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Dawam_backend.Helpers;
 
 namespace Dawam_backend.Controllers
 {
@@ -17,14 +18,16 @@ namespace Dawam_backend.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IConfiguration _configuration;
+        private readonly JwtTokenHelper _jwtTokenHelper;
 
         public AuthController(UserManager<ApplicationUser> userManager,
                               SignInManager<ApplicationUser> signInManager,
-                              IConfiguration configuration)
+                              IConfiguration configuration , JwtTokenHelper jwtTokenHelper)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _configuration = configuration;
+            _jwtTokenHelper = jwtTokenHelper;
         }
 
         [HttpPost("register")]
@@ -38,7 +41,7 @@ namespace Dawam_backend.Controllers
                     Email = registerDto.Email,
                     FullName = registerDto.FullName,
                     // Set Role based on provided Role in RegisterDto
-                    Role = registerDto.Role ?? "JobApplier",  // Default to "JobApplier" if no role is provided
+                    //Role = registerDto.Role ?? "JobApplier",  // Default to "JobApplier" if no role is provided
                 };
 
                 var result = await _userManager.CreateAsync(user, registerDto.Password);
@@ -52,7 +55,7 @@ namespace Dawam_backend.Controllers
                     }
 
                     // Generate JWT token after successful registration
-                    var token = await GenerateJwtToken(user);
+                    var token = await _jwtTokenHelper.GenerateJwtToken(user);
 
                     return Ok(new { message = "User registered successfully", token });
                 }
@@ -80,7 +83,7 @@ namespace Dawam_backend.Controllers
                 if (user != null && await _userManager.CheckPasswordAsync(user, loginDto.Password))
                 {
                     // Generate JWT token
-                    var token = await GenerateJwtToken(user);
+                    var token = await _jwtTokenHelper.GenerateJwtToken(user);
 
                     return Ok(new { message = "Login successful", token });
                 }
@@ -162,8 +165,7 @@ namespace Dawam_backend.Controllers
 
         [HttpDelete("me")]
         [Authorize]
-        public async Task<IActionResult> DeleteMe()
-        {
+        public async Task<IActionResult> DeleteMe(){
             // Get current user ID from token
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -187,39 +189,39 @@ namespace Dawam_backend.Controllers
             return Ok(new { message = "Your account has been deactivated." });
         }
 
-        private async Task<string> GenerateJwtToken(ApplicationUser user)
-        {
-            // Prepare the claims (user info)
-            var claims = new List<Claim>
-    {
-        new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-        new Claim(ClaimTypes.Name, user.FullName),
-        new Claim(ClaimTypes.Email, user.Email),
-    };
+        //    private async Task<string> GenerateJwtToken(ApplicationUser user)
+        //    {
+        //        // Prepare the claims (user info)
+        //        var claims = new List<Claim>
+        //{
+        //    new Claim(JwtRegisteredClaimNames.Sub, user.Id),
+        //    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        //    new Claim(ClaimTypes.Name, user.FullName),
+        //    new Claim(ClaimTypes.Email, user.Email),
+        //};
 
-            // Add user roles as claims
-            var userRoles = await _userManager.GetRolesAsync(user);
-            foreach (var role in userRoles)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, role));
-            }
+        //        // Add user roles as claims
+        //        var userRoles = await _userManager.GetRolesAsync(user);
+        //        foreach (var role in userRoles)
+        //        {
+        //            claims.Add(new Claim(ClaimTypes.Role, role));
+        //        }
 
-            // Set up JWT key and signing credentials
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        //        // Set up JWT key and signing credentials
+        //        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+        //        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            // Create the JWT token
-            var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                claims: claims,
-                expires: DateTime.Now.AddMinutes(Convert.ToDouble(_configuration["Jwt:ExpireInMinutes"])),
-                signingCredentials: creds
-            );
+        //        // Create the JWT token
+        //        var token = new JwtSecurityToken(
+        //            issuer: _configuration["Jwt:Issuer"],
+        //            audience: _configuration["Jwt:Audience"],
+        //            claims: claims,
+        //            expires: DateTime.Now.AddMinutes(Convert.ToDouble(_configuration["Jwt:ExpireInMinutes"])),
+        //            signingCredentials: creds
+        //        );
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
+        //        return new JwtSecurityTokenHandler().WriteToken(token);
+        //    }
 
     }
- }
+}

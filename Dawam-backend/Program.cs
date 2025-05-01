@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Dawam_backend.Services.Interfaces;
 using Dawam_backend.Services;
+using Dawam_backend.Helpers;
 
 namespace Dawam_backend
 {
@@ -21,7 +22,8 @@ namespace Dawam_backend
             // Configure DbContext with connection string
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+            // REGISTER JWT SERVICE
+            builder.Services.AddScoped<JwtTokenHelper>();
             // Configure Identity
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -53,6 +55,7 @@ namespace Dawam_backend
             // Register services for DI
             builder.Services.AddScoped<IJobService, JobService>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
+            builder.Services.AddScoped<IApplicationService, ApplicationService>();
 
 
             // Add services to the container.
@@ -179,8 +182,8 @@ namespace Dawam_backend
             app.UseHttpsRedirection();
             app.UseAuthentication(); // Very Important: for Identity
             app.UseAuthorization();
-
-
+            // for cvs
+            app.UseStaticFiles();
             app.MapControllers();
 
             app.Run();
