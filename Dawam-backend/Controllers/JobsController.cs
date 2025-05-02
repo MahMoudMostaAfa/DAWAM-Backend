@@ -55,12 +55,13 @@ namespace Dawam_backend.Controllers
             return NoContent();
         }
 
-        [Authorize(Roles = "JobPoster")]
+        [Authorize(Roles = "JobPoster,Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteJob(int id)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var success = await _jobService.DeleteJobAsync(id, userId);
+            var userRole = User.FindFirstValue(ClaimTypes.Role);
+            var success = await _jobService.DeleteJobAsync(id, userId, userRole);
             if (!success) return Forbid();
 
             return NoContent();

@@ -10,7 +10,7 @@ namespace Dawam_backend.Services.Interfaces
         Task<JobDetailsDto?> GetJobByIdAsync(int id);
         Task<JobDetailsDto> CreateJobAsync(JobCreateDto dto, string userId);
         Task<bool> UpdateJobAsync(int id, JobUpdateDto dto, string userId);
-        Task<bool> DeleteJobAsync(int id, string userId);
+        Task<bool> DeleteJobAsync(int id, string userId, string userRole);
 
         Task<List<JobDetailsDto>> GetJobsByCurrentUserAsync(string userId);
     }

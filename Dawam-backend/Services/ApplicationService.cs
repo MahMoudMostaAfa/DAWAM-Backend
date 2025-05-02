@@ -39,7 +39,7 @@ namespace Dawam_backend.Services
                     AppliedAt=a.AppliedAt,
                     Status=a.Status,
                     PosterName=a.User.UserName,
-                    JobLevel=a.Job.CareerLevel,
+                    CareerLevel=a.Job.CareerLevel,
                     JobType=a.Job.JobType,
 
 

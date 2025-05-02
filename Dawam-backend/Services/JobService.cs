@@ -24,14 +24,39 @@ namespace Dawam_backend.Services
                 .Where(j => !j.IsClosed)
                 .AsQueryable();
 
-            if (!string.IsNullOrEmpty(filter.Location))
-                query = query.Where(j => j.Location.Contains(filter.Location));
+            // Filter by title (search)
+            if (!string.IsNullOrEmpty(filter.SearchTerm))
+                query = query.Where(j => j.Title.Contains(filter.SearchTerm));
 
+            // Filter by category
             if (!string.IsNullOrEmpty(filter.Category))
                 query = query.Where(j => j.Category.Name.Contains(filter.Category));
 
-            if (!string.IsNullOrEmpty(filter.JobType))
-                query = query.Where(j => j.JobType == filter.JobType);
+            // Filter by location
+            if (!string.IsNullOrEmpty(filter.Location))
+                query = query.Where(j => j.Location.Contains(filter.Location));
+
+            // Filter by job type
+            if (filter.JobType.HasValue)
+                query = query.Where(j => j.JobType == filter.JobType.Value);
+
+            // Filter by career level
+            if (filter.CareerLevel.HasValue)
+                query = query.Where(j => j.CareerLevel == filter.CareerLevel.Value);
+
+            // Sort by CreatedAt
+            if (filter.SortByDateDesc.HasValue && filter.SortByDateDesc.Value)
+                query = query.OrderByDescending(j => j.CreatedAt);
+            else
+                query = query.OrderBy(j => j.CreatedAt);
+
+            // Pagination
+            int page = filter.PageNumber.HasValue && filter.PageNumber.Value > 0
+                ? filter.PageNumber.Value
+                : 1;
+            if (page < 1) page = 1;  // Set to 1 if the page number is less than 1
+            int pageSize = 10;
+            query = query.Skip((page - 1) * pageSize).Take(pageSize);
 
             return await query.Select(j => new JobDetailsDto
             {
@@ -47,6 +72,7 @@ namespace Dawam_backend.Services
                 CategoryName = j.Category.Name
             }).ToListAsync();
         }
+
 
         public async Task<JobDetailsDto?> GetJobByIdAsync(int id)
         {
@@ -109,11 +135,13 @@ namespace Dawam_backend.Services
             return true;
         }
 
-        public async Task<bool> DeleteJobAsync(int id, string userId)
+        public async Task<bool> DeleteJobAsync(int id, string userId, string userRole)
         {
             var job = await _context.Jobs.FindAsync(id);
 
-            if (job == null || job.PostedBy != userId) return false;
+            if (job == null) return false;
+
+            if (userRole != "Admin" && job.PostedBy != userId) return false;
 
             job.IsClosed = true;
             await _context.SaveChangesAsync();
