@@ -17,7 +17,7 @@ namespace Dawam_backend.Services
             _context = context;
         }
 
-        public async Task<IEnumerable<JobDetailsDto>> GetJobsAsync(JobFilterDto filter)
+        public async Task<PagedJobResultDto> GetJobsAsync(JobFilterDto filter)
         {
             var query = _context.Jobs
                 .Include(j => j.Category)
@@ -26,7 +26,10 @@ namespace Dawam_backend.Services
 
             // Filter by title (search)
             if (!string.IsNullOrEmpty(filter.SearchTerm))
-                query = query.Where(j => j.Title.Contains(filter.SearchTerm));
+            {
+                string normalizedSearch = filter.SearchTerm.Replace("-", " ");
+                query = query.Where(j => j.Title.Contains(normalizedSearch));
+            }
 
             // Filter by category
             if (!string.IsNullOrEmpty(filter.Category))
@@ -44,6 +47,9 @@ namespace Dawam_backend.Services
             if (filter.CareerLevel.HasValue)
                 query = query.Where(j => j.CareerLevel == filter.CareerLevel.Value);
 
+
+            int totalCount = await query.CountAsync();
+
             // Sort by CreatedAt
             if (filter.SortByDateDesc.HasValue && filter.SortByDateDesc.Value)
                 query = query.OrderByDescending(j => j.CreatedAt);
@@ -58,7 +64,7 @@ namespace Dawam_backend.Services
             int pageSize = 10;
             query = query.Skip((page - 1) * pageSize).Take(pageSize);
 
-            return await query.Select(j => new JobDetailsDto
+            var jobs = await query.Select(j => new JobDetailsDto
             {
                 Id = j.Id,
                 Title = j.Title,
@@ -71,6 +77,12 @@ namespace Dawam_backend.Services
                 IsClosed = j.IsClosed,
                 CategoryName = j.Category.Name
             }).ToListAsync();
+
+            return new PagedJobResultDto
+            {
+                TotalCount = totalCount,
+                Jobs = jobs
+            };
         }
 
 
@@ -148,12 +160,12 @@ namespace Dawam_backend.Services
             return true;
         }
 
-        public async Task<List<JobDetailsDto>> GetJobsByCurrentUserAsync(string userId)
+        public async Task<List<JobDetailsPosterDto>> GetJobsByCurrentUserAsync(string userId)
         {
             return await _context.Jobs
                 .Include(j => j.Category)
                 .Where(j => j.PostedBy == userId && !j.IsClosed)
-                .Select(j => new JobDetailsDto
+                .Select(j => new JobDetailsPosterDto
                 {
                     Id = j.Id,
                     Title = j.Title,
@@ -164,7 +176,8 @@ namespace Dawam_backend.Services
                     CareerLevel = j.CareerLevel,
                     CreatedAt = j.CreatedAt,
                     IsClosed = j.IsClosed,
-                    CategoryName = j.Category.Name
+                    CategoryName = j.Category.Name,
+                    ApplicationCount = _context.Applications.Count(a => a.JobId == j.Id)
                 })
                 .ToListAsync();
         }

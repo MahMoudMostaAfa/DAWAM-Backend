@@ -56,6 +56,7 @@ namespace Dawam_backend
             builder.Services.AddScoped<IJobService, JobService>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
             builder.Services.AddScoped<IApplicationService, ApplicationService>();
+            builder.Services.AddScoped<IAnalysisService, AnalysisService>();
 
 
             // Add services to the container.

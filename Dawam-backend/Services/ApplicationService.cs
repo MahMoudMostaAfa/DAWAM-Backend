@@ -28,24 +28,33 @@ namespace Dawam_backend.Services
         }
         public async Task<IEnumerable<UserApplicationDto>> GetApplicationsByUserIdAsync(string userId)
         {
-            return await _context.Applications
-                //.Include(a => a.Job)
+            var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
+
+            var applications = await _context.Applications
                 .Where(a => a.UserId == userId)
+                .Select(a => new
+                {
+                    Application = a,
+                    HasValidPayment = _context.Payments.Any(p =>
+                        p.UserId == a.UserId &&
+                        p.PaymentDate >= oneMonthAgo)
+                })
+                .OrderByDescending(a => a.HasValidPayment) // Payments first
+                .ThenByDescending(a => a.Application.AppliedAt)
                 .Select(a => new UserApplicationDto
                 {
-                    Id=a.Id,
-                    JobId=a.JobId,
-                    JobTitle=a.Job.Title,
-                    AppliedAt=a.AppliedAt,
-                    Status=a.Status,
-                    PosterName=a.User.UserName,
-                    CareerLevel=a.Job.CareerLevel,
-                    JobType=a.Job.JobType,
-
-
-                   
+                    Id = a.Application.Id,
+                    JobId = a.Application.JobId,
+                    JobTitle = a.Application.Job.Title,
+                    AppliedAt = a.Application.AppliedAt,
+                    Status = a.Application.Status,
+                    PosterName = a.Application.User.UserName,
+                    CareerLevel = a.Application.Job.CareerLevel,
+                    JobType = a.Application.Job.JobType
                 })
                 .ToListAsync();
+
+            return applications;
         }
 
         public async Task<IEnumerable<ApplicationDto>> GetApplicationsByJobIdAsync(int jobId, string jobPosterId)

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Dawam_backend.Enums;
+using Microsoft.AspNetCore.Identity;
 namespace Dawam_backend.Models
 {
     public class ApplicationUser:IdentityUser
@@ -10,7 +11,7 @@ namespace Dawam_backend.Models
       
         public string? Address { get; set; }
         public string? Location { get; set; }
-        public string? CareerLevel { get; set; }
+        public CareerLevelE? CareerLevel { get; set; }
         public int? ExperienceYears { get; set; }
         public int? SubscriptionPlanId { get; set; }
         public SubscriptionPlan? SubscriptionPlan { get; set; }
