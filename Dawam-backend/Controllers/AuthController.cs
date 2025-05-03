@@ -8,6 +8,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Dawam_backend.Helpers;
+using Microsoft.EntityFrameworkCore;
+using Dawam_backend.Data;
 
 namespace Dawam_backend.Controllers
 {
@@ -19,15 +21,17 @@ namespace Dawam_backend.Controllers
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IConfiguration _configuration;
         private readonly JwtTokenHelper _jwtTokenHelper;
+        private readonly ApplicationDbContext _context;
 
         public AuthController(UserManager<ApplicationUser> userManager,
                               SignInManager<ApplicationUser> signInManager,
-                              IConfiguration configuration , JwtTokenHelper jwtTokenHelper)
+                              IConfiguration configuration , JwtTokenHelper jwtTokenHelper, ApplicationDbContext context)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _configuration = configuration;
             _jwtTokenHelper = jwtTokenHelper;
+            _context = context;
         }
 
         [HttpPost("register")]
@@ -106,6 +110,8 @@ namespace Dawam_backend.Controllers
             {
                 return NotFound(new { message = "User not found" });
             }
+            var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
+            var isPremiumFlag = await _context.Payments.AnyAsync(p => p.UserId == user.Id && p.PaymentDate >= oneMonthAgo);
 
             // Prepare user data to return
             var userData = new
@@ -121,7 +127,8 @@ namespace Dawam_backend.Controllers
                 user.ExperienceYears,
                 user.IsActive,
                 user.CreatedAt,
-                Roles = await _userManager.GetRolesAsync(user)
+                Roles = await _userManager.GetRolesAsync(user),
+                isPremium = isPremiumFlag
             };
 
             return Ok(userData);
@@ -143,7 +150,7 @@ namespace Dawam_backend.Controllers
             if (!string.IsNullOrEmpty(dto.Bio)) user.Bio = dto.Bio;
             if (!string.IsNullOrEmpty(dto.Address)) user.Address = dto.Address;
             if (!string.IsNullOrEmpty(dto.Location)) user.Location = dto.Location;
-            if (!string.IsNullOrEmpty(dto.CareerLevel)) user.CareerLevel = dto.CareerLevel;
+            if (dto.CareerLevel.HasValue) user.CareerLevel = dto.CareerLevel;
             if (dto.ExperienceYears.HasValue) user.ExperienceYears = dto.ExperienceYears.Value;
 
             var result = await _userManager.UpdateAsync(user);

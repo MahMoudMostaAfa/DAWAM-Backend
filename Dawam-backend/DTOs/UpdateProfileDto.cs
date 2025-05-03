@@ -1,4 +1,6 @@
-﻿namespace Dawam_backend.DTOs
+﻿using Dawam_backend.Enums;
+
+namespace Dawam_backend.DTOs
 {
     public class UpdateProfileDto
     {
@@ -8,7 +10,7 @@
         public string? Bio { get; set; }
         public string? Address { get; set; }
         public string? Location { get; set; }
-        public string? CareerLevel { get; set; }
+        public CareerLevelE? CareerLevel { get; set; }
         public int? ExperienceYears { get; set; }
        
     }

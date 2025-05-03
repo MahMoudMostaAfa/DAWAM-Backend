@@ -56,6 +56,7 @@ namespace Dawam_backend
             builder.Services.AddScoped<IJobService, JobService>();
             builder.Services.AddScoped<ICategoryService, CategoryService>();
             builder.Services.AddScoped<IApplicationService, ApplicationService>();
+            builder.Services.AddScoped<IAnalysisService, AnalysisService>();
 
 
             // Add services to the container.
@@ -112,7 +113,6 @@ namespace Dawam_backend
             {
                 var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
                 var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-                var dbContext = services.GetRequiredService<ApplicationDbContext>();
 
                 var adminEmail = "admin@dawam.com";
                 var adminPassword = "Admin@12345"; // Secure password
@@ -138,16 +138,6 @@ namespace Dawam_backend
                     {
                         await userManager.AddToRoleAsync(adminUser, "Admin");
                     }
-
-
-                    if (!dbContext.Categories.Any())
-                    {
-                        dbContext.Categories.Add(new Category
-                        {
-                            Name = "Software Development",
-                        });
-                        await dbContext.SaveChangesAsync();
-                    }
                 }
             }
 
@@ -161,6 +151,8 @@ namespace Dawam_backend
             {
                 var services = scope.ServiceProvider;
                 var context = services.GetRequiredService<ApplicationDbContext>();
+
+                //context.Database.ExecuteSqlRaw("DELETE FROM Jobs");
 
                 // Seed jobs if necessary
                 SeedJobs(context);
@@ -204,8 +196,8 @@ namespace Dawam_backend
                 Description = "Responsible for developing and maintaining software applications.",
                 Requirements = "C#, .NET, SQL",
                 CategoryId = categoryId,
-                CareerLevel = "Mid-Level",
-                JobType = "Full-Time",
+                CareerLevel = Enums.CareerLevelE.Senior,
+                JobType = Enums.JobTypeE.FullTime,
                 Location = "Remote",
                 PostedBy = userId,
                 CreatedAt = DateTime.UtcNow
@@ -216,8 +208,8 @@ namespace Dawam_backend
                 Description = "Work on analyzing large datasets to provide business insights.",
                 Requirements = "Python, Machine Learning, SQL",
                 CategoryId = categoryId,
-                CareerLevel = "Senior",
-                JobType = "Full-Time",
+                CareerLevel = Enums.CareerLevelE.Junior,
+                JobType = Enums.JobTypeE.PartTime,
                 Location = "On-Site",
                 PostedBy = userId,
                 CreatedAt = DateTime.UtcNow

@@ -2,7 +2,7 @@
 
 namespace Dawam_backend.DTOs.jobs
 {
-    public class JobDetailsDto
+    public class JobDetailsPosterDto
     {
         public int Id { get; set; }
         public string Title { get; set; }
@@ -14,6 +14,6 @@ namespace Dawam_backend.DTOs.jobs
         public bool IsClosed { get; set; }
         public DateTime CreatedAt { get; set; }
         public string? CategoryName { get; set; }
+        public int ApplicationCount { get; set; }
     }
-
 }

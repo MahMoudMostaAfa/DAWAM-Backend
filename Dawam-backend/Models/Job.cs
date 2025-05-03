@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using Dawam_backend.Enums;
 
 namespace Dawam_backend.Models
 {
@@ -10,8 +10,8 @@ namespace Dawam_backend.Models
         public string Requirements { get; set; }
         public int? CategoryId { get; set; }
         public Category Category { get; set; }
-        public string CareerLevel { get; set; }
-        public string JobType { get; set; }
+        public CareerLevelE CareerLevel { get; set; }
+        public JobTypeE JobType { get; set; }
         public string Location { get; set; }
         public bool IsClosed { get; set; } = false;
         public string PostedBy { get; set; }
