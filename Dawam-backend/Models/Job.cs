@@ -1,4 +1,6 @@
-﻿namespace Dawam_backend.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Dawam_backend.Models
 {
     public class Job
     {

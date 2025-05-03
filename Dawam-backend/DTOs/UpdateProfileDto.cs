@@ -10,5 +10,6 @@
         public string? Location { get; set; }
         public string? CareerLevel { get; set; }
         public int? ExperienceYears { get; set; }
+       
     }
 }
