@@ -12,6 +12,7 @@ namespace Dawam_backend.DTOs
         public string? Location { get; set; }
         public CareerLevelE? CareerLevel { get; set; }
         public int? ExperienceYears { get; set; }
+        public IFormFile? Image { get; set; }
        
     }
 }

@@ -22,43 +22,62 @@ namespace Dawam_backend.Controllers
         private readonly IConfiguration _configuration;
         private readonly JwtTokenHelper _jwtTokenHelper;
         private readonly ApplicationDbContext _context;
+        private readonly IWebHostEnvironment _env;
 
         public AuthController(UserManager<ApplicationUser> userManager,
                               SignInManager<ApplicationUser> signInManager,
-                              IConfiguration configuration , JwtTokenHelper jwtTokenHelper, ApplicationDbContext context)
+                              IConfiguration configuration , JwtTokenHelper jwtTokenHelper, ApplicationDbContext context, IWebHostEnvironment env)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _configuration = configuration;
             _jwtTokenHelper = jwtTokenHelper;
             _context = context;
+            _env = env;
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
+        [AllowAnonymous]
+        [RequestSizeLimit(5_000_000)] // Limit image upload to 5MB
+        public async Task<IActionResult> Register([FromForm] RegisterDto registerDto)
         {
             if (ModelState.IsValid)
             {
+                // Save image if provided
+        string imagePath = "/ImagePath/Default.jpg";
+
+        // Save uploaded image if provided
+        if (registerDto.Image != null)
+        {
+            var uploadsFolder = Path.Combine(_env.WebRootPath ?? "wwwroot", "ImagePath");
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            var fileName = Guid.NewGuid().ToString() + Path.GetExtension(registerDto.Image.FileName);
+            var filePath = Path.Combine(uploadsFolder, fileName);
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await registerDto.Image.CopyToAsync(stream);
+            }
+
+            imagePath = $"/ImagePath/{fileName}";
+        }
+
                 var user = new ApplicationUser
                 {
                     UserName = registerDto.Email,
                     Email = registerDto.Email,
                     FullName = registerDto.FullName,
-                    // Set Role based on provided Role in RegisterDto
-                    //Role = registerDto.Role ?? "JobApplier",  // Default to "JobApplier" if no role is provided
+                    ImagePath = imagePath, // Store image path in DB
                 };
 
                 var result = await _userManager.CreateAsync(user, registerDto.Password);
 
                 if (result.Succeeded)
                 {
-                    // Assign the role after user creation
                     if (!string.IsNullOrEmpty(registerDto.Role))
-                    {
                         await _userManager.AddToRoleAsync(user, registerDto.Role);
-                    }
 
-                    // Generate JWT token after successful registration
                     var token = await _jwtTokenHelper.GenerateJwtToken(user);
 
                     return Ok(new { message = "User registered successfully", token });
@@ -66,10 +85,8 @@ namespace Dawam_backend.Controllers
 
                 return BadRequest(result.Errors);
             }
-            else
-            {
-                return BadRequest("Failed to register");
-            }
+
+            return BadRequest("Failed to register");
         }
 
         [HttpPost("login")]
@@ -128,7 +145,8 @@ namespace Dawam_backend.Controllers
                 user.IsActive,
                 user.CreatedAt,
                 Roles = await _userManager.GetRolesAsync(user),
-                isPremium = isPremiumFlag
+                isPremium = isPremiumFlag,
+                user.ImagePath
             };
 
             return Ok(userData);
@@ -136,7 +154,8 @@ namespace Dawam_backend.Controllers
 
         [Authorize]
         [HttpPut("me")]
-        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
+        [RequestSizeLimit(5_000_000)] // Limit photo size to 5MB
+        public async Task<IActionResult> UpdateProfile([FromForm] UpdateProfileDto dto)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var user = await _userManager.FindByIdAsync(userId);
@@ -144,7 +163,7 @@ namespace Dawam_backend.Controllers
             if (user == null)
                 return NotFound("User not found");
 
-            // Update only non-null fields
+            // Update non-null fields
             if (!string.IsNullOrEmpty(dto.FullName)) user.FullName = dto.FullName;
             if (!string.IsNullOrEmpty(dto.Title)) user.Title = dto.Title;
             if (!string.IsNullOrEmpty(dto.Bio)) user.Bio = dto.Bio;
@@ -153,6 +172,32 @@ namespace Dawam_backend.Controllers
             if (dto.CareerLevel.HasValue) user.CareerLevel = dto.CareerLevel;
             if (dto.ExperienceYears.HasValue) user.ExperienceYears = dto.ExperienceYears.Value;
 
+            // Handle new image upload
+            if (dto.Image != null)
+            {
+                var uploadsFolder = Path.Combine(_env.WebRootPath ?? "wwwroot", "ImagePath");
+                if (!Directory.Exists(uploadsFolder))
+                    Directory.CreateDirectory(uploadsFolder);
+
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(dto.Image.FileName);
+                var filePath = Path.Combine(uploadsFolder, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await dto.Image.CopyToAsync(stream);
+                }
+
+                // Optional: delete old image (if not default)
+                if (!string.IsNullOrEmpty(user.ImagePath) && !user.ImagePath.Contains("default.png"))
+                {
+                    var oldFilePath = Path.Combine(_env.WebRootPath ?? "wwwroot", user.ImagePath.TrimStart('/'));
+                    if (System.IO.File.Exists(oldFilePath))
+                        System.IO.File.Delete(oldFilePath);
+                }
+
+                user.ImagePath = $"/ImagePath/{fileName}";
+            }
+
             var result = await _userManager.UpdateAsync(user);
 
             if (result.Succeeded)
@@ -160,6 +205,7 @@ namespace Dawam_backend.Controllers
 
             return BadRequest(result.Errors);
         }
+
 
         [HttpPost("logout")]
         [Authorize]

@@ -17,5 +17,7 @@ namespace Dawam_backend.Models
         public SubscriptionPlan? SubscriptionPlan { get; set; }
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public string? ImagePath { get; set; }
     }
 }
