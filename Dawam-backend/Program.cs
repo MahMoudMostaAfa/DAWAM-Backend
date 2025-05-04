@@ -97,9 +97,18 @@ namespace Dawam_backend
             });
 
             builder.Services.AddEndpointsApiExplorer();
-            
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll",
+                   policy => policy.AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod());
+
+            });
 
             var app = builder.Build();
+            // use cors 
+            app.UseCors("AllowAll");
             // Initialize roles
             using (var scope = app.Services.CreateScope())
             {
