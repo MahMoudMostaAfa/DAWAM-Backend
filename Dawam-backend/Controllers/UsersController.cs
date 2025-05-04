@@ -39,7 +39,7 @@ namespace Dawam_backend.Controllers
                         user.UserName,
                         user.IsActive,
                         user.CreatedAt,
-                        user.PhoneNumber,
+                        phone=user.PhoneNumber,
                         role=roles
                     });
                 }

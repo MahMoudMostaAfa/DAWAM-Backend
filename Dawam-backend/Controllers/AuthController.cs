@@ -124,7 +124,7 @@ namespace Dawam_backend.Controllers
                 user.Location,
                 user.CareerLevel,
                 user.ExperienceYears,
-                user.PhoneNumber,
+                phone=user.PhoneNumber,
                 user.IsActive,
                 user.CreatedAt,
                 Roles = await _userManager.GetRolesAsync(user),
