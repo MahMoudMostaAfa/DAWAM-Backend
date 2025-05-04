@@ -16,7 +16,6 @@ namespace Dawam_backend.DTOs
         [Required]
         [CustomRoleValidation(ErrorMessage = "Role must be either 'jobApplier' or 'jobPoster'.")]
         public string Role { get; set; } = "JobApplier";
-        public IFormFile? Image { get; set; }
 
     }
     public class CustomRoleValidationAttribute : ValidationAttribute

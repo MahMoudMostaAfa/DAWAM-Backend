@@ -38,30 +38,12 @@ namespace Dawam_backend.Controllers
 
         [HttpPost("register")]
         [AllowAnonymous]
-        [RequestSizeLimit(5_000_000)] // Limit image upload to 5MB
-        public async Task<IActionResult> Register([FromForm] RegisterDto registerDto)
+        public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
             if (ModelState.IsValid)
             {
                 // Save image if provided
-        string imagePath = "/ImagePath/Default.jpg";
-
-        // Save uploaded image if provided
-        if (registerDto.Image != null)
-        {
-            var uploadsFolder = Path.Combine(_env.WebRootPath ?? "wwwroot", "ImagePath");
-            if (!Directory.Exists(uploadsFolder))
-                Directory.CreateDirectory(uploadsFolder);
-
-            var fileName = Guid.NewGuid().ToString() + Path.GetExtension(registerDto.Image.FileName);
-            var filePath = Path.Combine(uploadsFolder, fileName);
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await registerDto.Image.CopyToAsync(stream);
-            }
-
-            imagePath = $"/ImagePath/{fileName}";
-        }
+                string imagePath = "/ImagePath/Default.jpg";
 
                 var user = new ApplicationUser
                 {
@@ -142,11 +124,12 @@ namespace Dawam_backend.Controllers
                 user.Location,
                 user.CareerLevel,
                 user.ExperienceYears,
+                user.PhoneNumber,
                 user.IsActive,
                 user.CreatedAt,
                 Roles = await _userManager.GetRolesAsync(user),
                 isPremium = isPremiumFlag,
-                user.ImagePath
+                user.ImagePath,
             };
 
             return Ok(userData);
@@ -171,6 +154,7 @@ namespace Dawam_backend.Controllers
             if (!string.IsNullOrEmpty(dto.Location)) user.Location = dto.Location;
             if (dto.CareerLevel.HasValue) user.CareerLevel = dto.CareerLevel;
             if (dto.ExperienceYears.HasValue) user.ExperienceYears = dto.ExperienceYears.Value;
+            if (!string.IsNullOrEmpty(dto.Phone)) user.PhoneNumber = dto.Phone;
 
             // Handle new image upload
             if (dto.Image != null)
