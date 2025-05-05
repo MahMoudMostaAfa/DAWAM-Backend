@@ -10,6 +10,7 @@ using Microsoft.OpenApi.Models;
 using Dawam_backend.Services.Interfaces;
 using Dawam_backend.Services;
 using Dawam_backend.Helpers;
+using Stripe;
 
 namespace Dawam_backend
 {
@@ -58,6 +59,10 @@ namespace Dawam_backend
             builder.Services.AddScoped<IApplicationService, ApplicationService>();
             builder.Services.AddScoped<IAnalysisService, AnalysisService>();
 
+            // configure stripe 
+
+            var stripeSettings = builder.Configuration.GetSection("Stripe");
+            StripeConfiguration.ApiKey = stripeSettings["SecretKey"];
 
             // Add services to the container.
 
@@ -105,6 +110,8 @@ namespace Dawam_backend
                 .AllowAnyMethod());
 
             });
+
+            builder.Services.AddHttpsRedirection(options => options.HttpsPort = null); // Disable HTTPS redirect
 
             var app = builder.Build();
             // use cors 
@@ -185,6 +192,11 @@ namespace Dawam_backend
             app.UseAuthorization();
             // for cvs
             app.UseStaticFiles();
+            app.Use(async (context, next) =>
+            {
+                context.Request.EnableBuffering();
+                await next();
+            });
             app.MapControllers();
 
             app.Run();
