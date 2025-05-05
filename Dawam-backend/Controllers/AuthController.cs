@@ -152,7 +152,7 @@ namespace Dawam_backend.Controllers
             if (!string.IsNullOrEmpty(dto.Bio)) user.Bio = dto.Bio;
             if (!string.IsNullOrEmpty(dto.Address)) user.Address = dto.Address;
             if (!string.IsNullOrEmpty(dto.Location)) user.Location = dto.Location;
-            if (dto.CareerLevel.HasValue) user.CareerLevel = dto.CareerLevel;
+            if (dto.CareerLevel.HasValue) user.CareerLevel = dto.CareerLevel.Value;
             if (dto.ExperienceYears.HasValue) user.ExperienceYears = dto.ExperienceYears.Value;
             if (!string.IsNullOrEmpty(dto.Phone)) user.PhoneNumber = dto.Phone;
 

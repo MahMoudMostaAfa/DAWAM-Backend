@@ -164,7 +164,7 @@ namespace Dawam_backend.Services
         {
             return await _context.Jobs
                 .Include(j => j.Category)
-                .Where(j => j.PostedBy == userId && !j.IsClosed)
+                .Where(j => j.PostedBy == userId )
                 .Select(j => new JobDetailsPosterDto
                 {
                     Id = j.Id,
