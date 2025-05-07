@@ -11,7 +11,7 @@ namespace Dawam_backend.Models
       
         public string? Address { get; set; }
         public string? Location { get; set; }
-        public CareerLevelE? CareerLevel { get; set; }
+        public CareerLevelE CareerLevel { get; set; } = CareerLevelE.Junior;
         public int? ExperienceYears { get; set; }
         public int? SubscriptionPlanId { get; set; }
         public SubscriptionPlan? SubscriptionPlan { get; set; }

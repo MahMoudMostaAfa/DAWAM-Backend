@@ -17,8 +17,8 @@ namespace Dawam_backend.Controllers
         }
 
         [HttpGet]
-        [Authorize]
-        public async Task<IActionResult> GetAll()
+        //[Authorize]
+        public async Task<IActionResult> GetAll()   
         {
             var categories = await _categoryService.GetAllAsync();
             return Ok(categories);

@@ -99,7 +99,7 @@ namespace Dawam_backend.Controllers
                     _config["Stripe:WebhookSecret"]
                 );
                 Console.WriteLine($"Stripe event type: {stripeEvent.Type}");
-                if (stripeEvent.Type == "checkout.session.completed")
+                if (stripeEvent.Type == EventTypes.CheckoutSessionCompleted)
                 {
                     var session = stripeEvent.Data.Object as Session;
                     var userId = session.Metadata["userId"];
