@@ -7,7 +7,8 @@ namespace Dawam_backend.Models
     public class ApplicationUser : IdentityUser
     {
         [Required]
-        [MaxLength(100)]
+        [RegularExpression(@"^[a-zA-Z]+$", ErrorMessage = "Username must contain only letters.")]
+        [MaxLength(100, ErrorMessage = "Username cannot exceed 100 characters.")]
         public string FullName { get; set; }
 
         [Required]
