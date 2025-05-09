@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace Dawam_backend.Controllers
@@ -50,7 +51,7 @@ namespace Dawam_backend.Controllers
 
 
              [HttpDelete("{UserId}")]
-             public async Task<IActionResult> DeleteUser(string UserId)
+             public async Task<IActionResult> DeActivateUser(string UserId)
         {
            
 
@@ -70,6 +71,52 @@ namespace Dawam_backend.Controllers
             await _userManager.UpdateAsync(user);
 
             return Ok(new { message = "Your account has been deactivated." });
+        }
+           
+            [HttpPost("{UserId}")]
+             public async Task<IActionResult> ActivateUser(string UserId)
+        {
+
+
+            // Find user in the database
+            var user = await _userManager.FindByIdAsync(UserId);
+
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found." });
+            }
+            if (user.IsActive)
+            {
+                return NotFound(new { message = "User already activated." });
+            }
+            // Set IsActive to true
+            user.IsActive = true;
+            await _userManager.UpdateAsync(user);
+
+            return Ok(new { message = "Your account has been activated." });
+        }
+        [AllowAnonymous]
+        [HttpGet("{slug}")]
+        public async Task<IActionResult> GetUserBySlug(string slug)
+        {
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Slug == slug && u.IsActive);
+
+            if (user == null)
+                return NotFound(new {message="no found user"});
+
+            return Ok(new
+            {
+                
+                user.FullName,
+                user.Email,
+                user.Title,
+                user.Bio,
+                user.CareerLevel,
+                user.ExperienceYears,
+                phone = user.PhoneNumber,
+                user.CreatedAt,
+                user.ImagePath,
+            });
         }
 
     }

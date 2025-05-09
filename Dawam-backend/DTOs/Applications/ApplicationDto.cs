@@ -10,6 +10,8 @@
         public decimal ExpectedSalary { get; set; }
         public string Phone { get; set; }
         public string CVFilePath { get; set; }
+        public string Slug { get; set; }
+
         public DateTime AppliedAt { get; set; }
     }
 }

@@ -52,7 +52,7 @@ namespace Dawam_backend.Controllers
             var success = await _jobService.UpdateJobAsync(id, dto, userId);
             if (!success) return Forbid();
 
-            return NoContent();
+            return Ok("job updated succussfully !");
         }
 
         [Authorize(Roles = "JobPoster,Admin")]
@@ -64,7 +64,7 @@ namespace Dawam_backend.Controllers
             var success = await _jobService.DeleteJobAsync(id, userId, userRole);
             if (!success) return Forbid();
 
-            return NoContent();
+            return Ok("job succussfully closed | deleted !");
         }
 
         [Authorize(Roles = "JobPoster")]

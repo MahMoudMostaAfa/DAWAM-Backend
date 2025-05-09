@@ -134,13 +134,18 @@ namespace Dawam_backend.Services
 
             if (job == null || job.PostedBy != userId) return false;
 
-            job.Title = dto.Title;
-            job.Description = dto.Description;
-            job.Requirements = dto.Requirements;
-            job.JobType = dto.JobType;
-            job.CareerLevel = dto.CareerLevel;
-            job.Location = dto.Location;
-            job.CategoryId = dto.CategoryId;
+            if (!string.IsNullOrEmpty(dto.Title)) job.Title = dto.Title;
+            if (!string.IsNullOrEmpty(dto.Description)) job.Description = dto.Description;
+            if (!string.IsNullOrEmpty(dto.Requirements)) job.Requirements = dto.Requirements;
+            if(dto.JobType.HasValue) job.JobType = dto.JobType.Value;
+            if (dto.CareerLevel.HasValue) job.CareerLevel = dto.CareerLevel.Value;
+            if (!string.IsNullOrEmpty(dto.Location)) job.Location = dto.Location;
+            if( dto.CategoryId.HasValue) job.CategoryId = dto.CategoryId.Value;
+            if (dto.IsClosed.HasValue)
+            {
+                job.IsClosed = dto.IsClosed.Value; // Explicitly get the value
+            }
+
             job.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
@@ -149,13 +154,21 @@ namespace Dawam_backend.Services
 
         public async Task<bool> DeleteJobAsync(int id, string userId, string userRole)
         {
+            
             var job = await _context.Jobs.FindAsync(id);
-
+           
             if (job == null) return false;
 
-            if (userRole != "Admin" && job.PostedBy != userId) return false;
-
-            job.IsClosed = true;
+            
+            if (userRole == "Admin")
+            {
+                _context.Jobs.Remove(job);
+            }else
+            {
+                if (job.PostedBy != userId) return false;
+                job.IsClosed = true;
+            }
+           
             await _context.SaveChangesAsync();
             return true;
         }

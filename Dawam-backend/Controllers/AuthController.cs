@@ -10,6 +10,9 @@ using System.Text;
 using Dawam_backend.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Dawam_backend.Data;
+using Dawam_backend.Services.Interfaces;
+using Dawam_backend.DTOs.ForgetPassword;
+using System.Net;
 
 namespace Dawam_backend.Controllers
 {
@@ -23,10 +26,10 @@ namespace Dawam_backend.Controllers
         private readonly JwtTokenHelper _jwtTokenHelper;
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _env;
-
+        private readonly IEmailService _emailService;
         public AuthController(UserManager<ApplicationUser> userManager,
                               SignInManager<ApplicationUser> signInManager,
-                              IConfiguration configuration , JwtTokenHelper jwtTokenHelper, ApplicationDbContext context, IWebHostEnvironment env)
+                              IConfiguration configuration , JwtTokenHelper jwtTokenHelper, ApplicationDbContext context, IWebHostEnvironment env, IEmailService emailService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -34,6 +37,7 @@ namespace Dawam_backend.Controllers
             _jwtTokenHelper = jwtTokenHelper;
             _context = context;
             _env = env;
+            _emailService = emailService;
         }
 
         [HttpPost("register")]
@@ -42,7 +46,7 @@ namespace Dawam_backend.Controllers
         {
             if (ModelState.IsValid)
             {
-                // Save image if provided
+                // Save the default image
                 string imagePath = "/ImagePath/Default.jpg";
 
                 var user = new ApplicationUser
@@ -57,6 +61,19 @@ namespace Dawam_backend.Controllers
 
                 if (result.Succeeded)
                 {
+                    // Generate unique slug
+                    var baseSlug = SlugHelper.GenerateSlug(registerDto.FullName);
+                    user.Slug = await _context.Users.EnsureUniqueSlugAsync(baseSlug);
+
+                    // Update user with slug
+                    var updateResult = await _userManager.UpdateAsync(user);
+                    if (!updateResult.Succeeded)
+                    {
+                        await _userManager.DeleteAsync(user);
+                        return BadRequest(updateResult.Errors);
+                    }
+
+
                     if (!string.IsNullOrEmpty(registerDto.Role))
                         await _userManager.AddToRoleAsync(user, registerDto.Role);
 
@@ -226,39 +243,52 @@ namespace Dawam_backend.Controllers
             return Ok(new { message = "Your account has been deactivated." });
         }
 
-        //    private async Task<string> GenerateJwtToken(ApplicationUser user)
-        //    {
-        //        // Prepare the claims (user info)
-        //        var claims = new List<Claim>
-        //{
-        //    new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-        //    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-        //    new Claim(ClaimTypes.Name, user.FullName),
-        //    new Claim(ClaimTypes.Email, user.Email),
-        //};
+        [HttpPost("forgot-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest("Invalid email format");
 
-        //        // Add user roles as claims
-        //        var userRoles = await _userManager.GetRolesAsync(user);
-        //        foreach (var role in userRoles)
-        //        {
-        //            claims.Add(new Claim(ClaimTypes.Role, role));
-        //        }
+            var user = await _userManager.FindByEmailAsync(forgotPasswordDto.Email);
+            if (user == null || !user.IsActive)
+                return Ok(); // Prevent email enumeration
 
-        //        // Set up JWT key and signing credentials
-        //        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-        //        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var encodedToken = WebUtility.UrlEncode(token);
+            var resetUrl = $"{_configuration["EmailSettings:ClientURL"]}/reset-password?userId={user.Id}&token={encodedToken}";
 
-        //        // Create the JWT token
-        //        var token = new JwtSecurityToken(
-        //            issuer: _configuration["Jwt:Issuer"],
-        //            audience: _configuration["Jwt:Audience"],
-        //            claims: claims,
-        //            expires: DateTime.Now.AddMinutes(Convert.ToDouble(_configuration["Jwt:ExpireInMinutes"])),
-        //            signingCredentials: creds
-        //        );
+            var emailBody = $@"<h1>Password Reset Request</h1>
+                      <p>Click the link below to reset your password:</p>
+                      <a href='{resetUrl}'>{resetUrl}</a>
+                      <p>This link expires in 24 hours.</p>";
 
-        //        return new JwtSecurityTokenHandler().WriteToken(token);
-        //    }
+            await _emailService.SendEmailAsync(user.Email, "Password Reset Request", emailBody);
+
+            return Ok(new { message = "Password reset link sent to email" });
+        }
+
+        [HttpPost("reset-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var user = await _userManager.FindByIdAsync(resetDto.UserId);
+            if (user == null || !user.IsActive)
+                return BadRequest("Invalid request");
+
+            var decodedToken = WebUtility.UrlDecode(resetDto.Token);
+            var result = await _userManager.ResetPasswordAsync(user, decodedToken, resetDto.NewPassword);
+
+            if (result.Succeeded)
+                return Ok(new { message = "Password reset successful" });
+
+            return BadRequest(result.Errors);
+        }
+
 
     }
+
 }

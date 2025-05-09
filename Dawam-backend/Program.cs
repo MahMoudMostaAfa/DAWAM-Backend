@@ -67,8 +67,12 @@ namespace Dawam_backend
             // Add services to the container.
 
             builder.Services.AddControllers();
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-            //builder.Services.AddOpenApi();
+
+            // register email servies 
+            builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+            builder.Services.AddTransient<IEmailService, EmailService>();
+
+
 
             // Add Swagger for API documentation
             builder.Services.AddSwaggerGen(c =>

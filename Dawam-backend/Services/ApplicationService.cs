@@ -71,7 +71,9 @@ namespace Dawam_backend.Services
              PreviousExperience=a.PreviousExperience,
              YearsOfExperience=a.YearsOfExperience,
              ExpectedSalary=a.ExpectedSalary,
-             CVFilePath=a.CVFilePath
+             CVFilePath=a.CVFilePath,
+             Slug=a.User.Slug
+            
            
          })
          .ToListAsync();

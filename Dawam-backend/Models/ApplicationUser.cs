@@ -1,5 +1,7 @@
 ﻿using Dawam_backend.Enums;
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 namespace Dawam_backend.Models
 {
     public class ApplicationUser:IdentityUser
@@ -8,7 +10,10 @@ namespace Dawam_backend.Models
         public string Role { get; set; }= "JobApplier";
         public string? Title { get; set; }
         public string? Bio { get; set; }
-      
+
+
+        public string? Slug { get; set; }
+
         public string? Address { get; set; }
         public string? Location { get; set; }
         public CareerLevelE CareerLevel { get; set; } = CareerLevelE.Junior;
