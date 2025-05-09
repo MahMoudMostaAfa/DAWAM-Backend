@@ -4,6 +4,7 @@ using Dawam_backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Dawam_backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250509152930_Add_SavedJobs")]
+    partial class Add_SavedJobs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -68,7 +71,7 @@ namespace Dawam_backend.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Applications", (string)null);
+                    b.ToTable("Applications");
                 });
 
             modelBuilder.Entity("Dawam_backend.Models.ApplicationUser", b =>
@@ -193,7 +196,7 @@ namespace Dawam_backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("Dawam_backend.Models.Job", b =>
@@ -248,7 +251,7 @@ namespace Dawam_backend.Migrations
 
                     b.HasIndex("PostedBy");
 
-                    b.ToTable("Jobs", (string)null);
+                    b.ToTable("Jobs");
                 });
 
             modelBuilder.Entity("Dawam_backend.Models.Payment", b =>
@@ -286,7 +289,7 @@ namespace Dawam_backend.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Payments", (string)null);
+                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("Dawam_backend.Models.SavedJob", b =>
@@ -313,7 +316,7 @@ namespace Dawam_backend.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("SavedJobs", (string)null);
+                    b.ToTable("SavedJobs");
                 });
 
             modelBuilder.Entity("Dawam_backend.Models.SubscriptionPlan", b =>
@@ -337,7 +340,7 @@ namespace Dawam_backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SubscriptionPlans", (string)null);
+                    b.ToTable("SubscriptionPlans");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

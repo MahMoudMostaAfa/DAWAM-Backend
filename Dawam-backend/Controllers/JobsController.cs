@@ -29,7 +29,8 @@ namespace Dawam_backend.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetJobById(int id)
         {
-            var job = await _jobService.GetJobByIdAsync(id);
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var job = await _jobService.GetJobByIdAsync(id,userId);
             if (job == null) return NotFound();
 
             return Ok(job);

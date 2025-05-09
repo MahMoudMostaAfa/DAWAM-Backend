@@ -3,6 +3,6 @@
     public class PagedJobResultDto
     {
         public int TotalCount { get; set; }
-        public List<JobDetailsDto> Jobs { get; set; }
+        public List<PageJobDto> Jobs { get; set; }
     }
 }

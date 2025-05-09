@@ -64,17 +64,15 @@ namespace Dawam_backend.Services
             int pageSize = 10;
             query = query.Skip((page - 1) * pageSize).Take(pageSize);
 
-            var jobs = await query.Select(j => new JobDetailsDto
+            var jobs = await query.Select(j => new PageJobDto
             {
                 Id = j.Id,
                 Title = j.Title,
                 Description = j.Description,
-                Requirements = j.Requirements,
                 JobType = j.JobType,
                 Location = j.Location,
                 CareerLevel = j.CareerLevel,
                 CreatedAt = j.CreatedAt,
-                IsClosed = j.IsClosed,
                 CategoryName = j.Category.Name
             }).ToListAsync();
 
@@ -86,10 +84,13 @@ namespace Dawam_backend.Services
         }
 
 
-        public async Task<JobDetailsDto?> GetJobByIdAsync(int id)
+        public async Task<JobDetailsDto?> GetJobByIdAsync(int id, string userId)
         {
             var job = await _context.Jobs.Include(j => j.Category)
                 .FirstOrDefaultAsync(j => j.Id == id);
+
+            var IsApplied = await _context.Applications.AnyAsync(j => j.JobId == id && j.UserId==userId);
+            bool IsSaved = await _context.SavedJobs.AnyAsync(s => s.UserId == userId && s.JobId == id);
 
             if (job == null) return null;
 
@@ -104,6 +105,8 @@ namespace Dawam_backend.Services
                 CareerLevel = job.CareerLevel,
                 CreatedAt = job.CreatedAt,
                 IsClosed = job.IsClosed,
+                IsApplied = IsApplied,
+                IsSaved = IsSaved,
                 CategoryName = job.Category?.Name
             };
         }
@@ -125,7 +128,7 @@ namespace Dawam_backend.Services
             _context.Jobs.Add(job);
             await _context.SaveChangesAsync();
 
-            return await GetJobByIdAsync(job.Id); // Reuse method to return full DTO
+            return await GetJobByIdAsync(job.Id,null); // Reuse method to return full DTO
         }
 
         public async Task<bool> UpdateJobAsync(int id, JobUpdateDto dto, string userId)

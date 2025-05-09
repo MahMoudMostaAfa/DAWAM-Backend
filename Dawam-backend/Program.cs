@@ -58,6 +58,8 @@ namespace Dawam_backend
             builder.Services.AddScoped<ICategoryService, CategoryService>();
             builder.Services.AddScoped<IApplicationService, ApplicationService>();
             builder.Services.AddScoped<IAnalysisService, AnalysisService>();
+            builder.Services.AddScoped<ISavedJobService, SavedJobService>();
+
 
             // configure stripe 
 
