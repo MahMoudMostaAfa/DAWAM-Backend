@@ -40,6 +40,10 @@ namespace Dawam_backend.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateJob([FromBody] JobCreateDto dto)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState); // Return a bad request if validation fails
+            }
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var job = await _jobService.CreateJobAsync(dto, userId);
             return CreatedAtAction(nameof(GetJobById), new { id = job.Id }, job);
@@ -49,6 +53,10 @@ namespace Dawam_backend.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateJob(int id, [FromBody] JobUpdateDto dto)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState); // Return a bad request if validation fails
+            }
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var success = await _jobService.UpdateJobAsync(id, dto, userId);
             if (!success) return Forbid();

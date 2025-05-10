@@ -28,6 +28,10 @@ namespace Dawam_backend.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create(CategoryDto dto)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState); // Return a bad request if validation fails
+            }
             var category = await _categoryService.CreateAsync(dto);
             return CreatedAtAction(nameof(GetAll), new { id = category.Id }, category);
         }

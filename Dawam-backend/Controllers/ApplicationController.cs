@@ -26,6 +26,10 @@ namespace Dawam_backend.Controllers
         [RequestSizeLimit(10_000_000)] // Optional: limit upload size (10MB)
         public async Task<IActionResult> Apply([FromForm] ApplyForJobDto dto)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState); // Return a bad request if validation fails
+            }
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             // Save CV file to server

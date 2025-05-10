@@ -157,6 +157,10 @@ namespace Dawam_backend.Controllers
         [RequestSizeLimit(5_000_000)] // Limit photo size to 5MB
         public async Task<IActionResult> UpdateProfile([FromForm] UpdateProfileDto dto)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState); // Return a bad request if validation fails
+            }
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var user = await _userManager.FindByIdAsync(userId);
 
