@@ -17,6 +17,7 @@ namespace Dawam_backend.Data
         public DbSet<Category> Categories { get; set; }
         public DbSet<Application> Applications { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<SavedJob> SavedJobs { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -73,6 +74,21 @@ namespace Dawam_backend.Data
                 .WithMany()
                 .HasForeignKey(p => p.SubscriptionPlanId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<SavedJob>()
+                .HasKey(sj => sj.Id);
+
+            builder.Entity<SavedJob>()
+                .HasOne(sj => sj.User)
+                .WithMany()
+                .HasForeignKey(sj => sj.UserId)
+                .OnDelete(DeleteBehavior.Cascade); ;
+
+            builder.Entity<SavedJob>()
+                .HasOne(sj => sj.Job)
+                .WithMany()
+                .HasForeignKey(sj => sj.JobId)
+                .OnDelete(DeleteBehavior.Cascade); ;
         }
     }
 }

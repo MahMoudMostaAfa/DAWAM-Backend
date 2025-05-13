@@ -5,6 +5,7 @@ namespace Dawam_backend.DTOs
     public class RegisterDto
     {
         [Required]
+        [RegularExpression(@"^[^\d]+$", ErrorMessage = "Name cannot contain numbers.")]
         public string FullName { get; set; }
         [Required]
         [EmailAddress]

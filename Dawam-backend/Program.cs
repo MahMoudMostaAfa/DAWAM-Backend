@@ -7,6 +7,10 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using Dawam_backend.Services.Interfaces;
+using Dawam_backend.Services;
+using Dawam_backend.Helpers;
+using Stripe;
 
 namespace Dawam_backend
 {
@@ -19,7 +23,8 @@ namespace Dawam_backend
             // Configure DbContext with connection string
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+            // REGISTER JWT SERVICE
+            builder.Services.AddScoped<JwtTokenHelper>();
             // Configure Identity
             builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -48,12 +53,28 @@ namespace Dawam_backend
             // Add authorization services (for role-based access control)
             builder.Services.AddAuthorization();
 
+            // Register services for DI
+            builder.Services.AddScoped<IJobService, JobService>();
+            builder.Services.AddScoped<ICategoryService, CategoryService>();
+            builder.Services.AddScoped<IApplicationService, ApplicationService>();
+            builder.Services.AddScoped<IAnalysisService, AnalysisService>();
+            builder.Services.AddScoped<ISavedJobService, SavedJobService>();
+
+
+            // configure stripe 
+
+            var stripeSettings = builder.Configuration.GetSection("Stripe");
+            StripeConfiguration.ApiKey = stripeSettings["SecretKey"];
 
             // Add services to the container.
 
             builder.Services.AddControllers();
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-            //builder.Services.AddOpenApi();
+
+            // register email servies 
+            builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+            builder.Services.AddTransient<IEmailService, EmailService>();
+
+
 
             // Add Swagger for API documentation
             builder.Services.AddSwaggerGen(c =>
@@ -87,9 +108,20 @@ namespace Dawam_backend
             });
 
             builder.Services.AddEndpointsApiExplorer();
-            
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll",
+                   policy => policy.AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod());
+
+            });
+
+            builder.Services.AddHttpsRedirection(options => options.HttpsPort = null); // Disable HTTPS redirect
 
             var app = builder.Build();
+            // use cors 
+            app.UseCors("AllowAll");
             // Initialize roles
             using (var scope = app.Services.CreateScope())
             {
@@ -137,27 +169,85 @@ namespace Dawam_backend
                 SeedAdminUserAsync(services).GetAwaiter().GetResult();
             }
 
-
-
-            // Configure the HTTP request pipeline.
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            using (var scope = app.Services.CreateScope())
             {
+                var services = scope.ServiceProvider;
+                var context = services.GetRequiredService<ApplicationDbContext>();
+
+                //context.Database.ExecuteSqlRaw("DELETE FROM Jobs");
+
+                // Seed jobs if necessary
+                SeedJobs(context);
+            }
+
+
+
+            // Configure the HTTP request pipeline.
+            // Configure the HTTP request pipeline.
+            //if (app.Environment.IsDevelopment())
+            //{
                 app.UseSwagger();
                 app.UseSwaggerUI(c =>
                 {
                     c.SwaggerEndpoint("/swagger/v1/swagger.json", "Dawam API V1");
                 });
-            }
+            //}
 
             app.UseHttpsRedirection();
             app.UseAuthentication(); // Very Important: for Identity
             app.UseAuthorization();
-
-
+            // for cvs
+            app.UseStaticFiles();
+            app.Use(async (context, next) =>
+            {
+                context.Request.EnableBuffering();
+                await next();
+            });
             app.MapControllers();
 
             app.Run();
         }
+
+        private static void SeedJobs(ApplicationDbContext context)
+        {
+            if (!context.Jobs.Any()) // Check if there are any jobs in the database
+            {
+                var categoryId = context.Categories.FirstOrDefault()?.Id; // Get a valid category or use a default ID
+                var userId = "c714889a-ea76-4d9f-bd86-6f5ba16c6801"; // Replace this with an actual user ID, for example an admin user ID
+
+                var jobs = new List<Job>
+        {
+            new Job
+            {
+                Title = "Software Engineer",
+                Description = "Responsible for developing and maintaining software applications.",
+                Requirements = "C#, .NET, SQL",
+                CategoryId = categoryId,
+                CareerLevel = Enums.CareerLevelE.Senior,
+                JobType = Enums.JobTypeE.FullTime,
+                Location = "Remote",
+                PostedBy = userId,
+                CreatedAt = DateTime.UtcNow
+            },
+            new Job
+            {
+                Title = "Data Scientist",
+                Description = "Work on analyzing large datasets to provide business insights.",
+                Requirements = "Python, Machine Learning, SQL",
+                CategoryId = categoryId,
+                CareerLevel = Enums.CareerLevelE.Junior,
+                JobType = Enums.JobTypeE.PartTime,
+                Location = "On-Site",
+                PostedBy = userId,
+                CreatedAt = DateTime.UtcNow
+            }
+        };
+
+                context.Jobs.AddRange(jobs);
+                context.SaveChanges();
+            }
+        }
     }
+
+
 }

@@ -1,0 +1,12 @@
+jobapplier 
+mail : mahmoud@gmail.com
+password:@#&22552002Mahmoud
+
+
+jobposter 
+mail :mahmoud@yahoo.com
+password:@#&22552002Mahmoud
+
+admin 
+mail :admin@dawam.com
+password : Admin@12345

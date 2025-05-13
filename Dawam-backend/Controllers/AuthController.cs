@@ -7,6 +7,12 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Dawam_backend.Helpers;
+using Microsoft.EntityFrameworkCore;
+using Dawam_backend.Data;
+using Dawam_backend.Services.Interfaces;
+using Dawam_backend.DTOs.ForgetPassword;
+using System.Net;
 
 namespace Dawam_backend.Controllers
 {
@@ -17,52 +23,69 @@ namespace Dawam_backend.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IConfiguration _configuration;
-
+        private readonly JwtTokenHelper _jwtTokenHelper;
+        private readonly ApplicationDbContext _context;
+        private readonly IWebHostEnvironment _env;
+        private readonly IEmailService _emailService;
         public AuthController(UserManager<ApplicationUser> userManager,
                               SignInManager<ApplicationUser> signInManager,
-                              IConfiguration configuration)
+                              IConfiguration configuration , JwtTokenHelper jwtTokenHelper, ApplicationDbContext context, IWebHostEnvironment env, IEmailService emailService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _configuration = configuration;
+            _jwtTokenHelper = jwtTokenHelper;
+            _context = context;
+            _env = env;
+            _emailService = emailService;
         }
 
         [HttpPost("register")]
+        [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterDto registerDto)
         {
             if (ModelState.IsValid)
             {
+                // Save the default image
+                string imagePath = "/ImagePath/Default.jpg";
+
                 var user = new ApplicationUser
                 {
                     UserName = registerDto.Email,
                     Email = registerDto.Email,
                     FullName = registerDto.FullName,
-                    // Set Role based on provided Role in RegisterDto
-                    Role = registerDto.Role ?? "JobApplier",  // Default to "JobApplier" if no role is provided
+                    ImagePath = imagePath, // Store image path in DB
                 };
 
                 var result = await _userManager.CreateAsync(user, registerDto.Password);
 
                 if (result.Succeeded)
                 {
-                    // Assign the role after user creation
-                    if (!string.IsNullOrEmpty(registerDto.Role))
+                    // Generate unique slug
+                    var baseSlug = SlugHelper.GenerateSlug(registerDto.FullName);
+                    user.Slug = await _context.Users.EnsureUniqueSlugAsync(baseSlug);
+
+                    // Update user with slug
+                    var updateResult = await _userManager.UpdateAsync(user);
+                    if (!updateResult.Succeeded)
                     {
-                        await _userManager.AddToRoleAsync(user, registerDto.Role);
+                        await _userManager.DeleteAsync(user);
+                        return BadRequest(updateResult.Errors);
                     }
 
-                    // Generate JWT token after successful registration
-                    var token = await GenerateJwtToken(user);
+
+                    if (!string.IsNullOrEmpty(registerDto.Role))
+                        await _userManager.AddToRoleAsync(user, registerDto.Role);
+
+                    var token = await _jwtTokenHelper.GenerateJwtToken(user);
 
                     return Ok(new { message = "User registered successfully", token });
                 }
 
                 return BadRequest(result.Errors);
             }
-            else
-            {
-                return BadRequest("Failed to register");
-            }
+
+            return BadRequest("Failed to register");
         }
 
         [HttpPost("login")]
@@ -80,7 +103,7 @@ namespace Dawam_backend.Controllers
                 if (user != null && await _userManager.CheckPasswordAsync(user, loginDto.Password))
                 {
                     // Generate JWT token
-                    var token = await GenerateJwtToken(user);
+                    var token = await _jwtTokenHelper.GenerateJwtToken(user);
 
                     return Ok(new { message = "Login successful", token });
                 }
@@ -103,6 +126,8 @@ namespace Dawam_backend.Controllers
             {
                 return NotFound(new { message = "User not found" });
             }
+            var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
+            var isPremiumFlag = await _context.Payments.AnyAsync(p => p.UserId == user.Id && p.PaymentDate >= oneMonthAgo);
 
             // Prepare user data to return
             var userData = new
@@ -116,9 +141,12 @@ namespace Dawam_backend.Controllers
                 user.Location,
                 user.CareerLevel,
                 user.ExperienceYears,
+                phone=user.PhoneNumber,
                 user.IsActive,
                 user.CreatedAt,
-                Roles = await _userManager.GetRolesAsync(user)
+                Roles = await _userManager.GetRolesAsync(user),
+                isPremium = isPremiumFlag,
+                user.ImagePath,
             };
 
             return Ok(userData);
@@ -126,22 +154,54 @@ namespace Dawam_backend.Controllers
 
         [Authorize]
         [HttpPut("me")]
-        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
+        [RequestSizeLimit(5_000_000)] // Limit photo size to 5MB
+        public async Task<IActionResult> UpdateProfile([FromForm] UpdateProfileDto dto)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState); // Return a bad request if validation fails
+            }
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var user = await _userManager.FindByIdAsync(userId);
 
             if (user == null)
                 return NotFound("User not found");
 
-            // Update only non-null fields
+            // Update non-null fields
             if (!string.IsNullOrEmpty(dto.FullName)) user.FullName = dto.FullName;
             if (!string.IsNullOrEmpty(dto.Title)) user.Title = dto.Title;
             if (!string.IsNullOrEmpty(dto.Bio)) user.Bio = dto.Bio;
             if (!string.IsNullOrEmpty(dto.Address)) user.Address = dto.Address;
             if (!string.IsNullOrEmpty(dto.Location)) user.Location = dto.Location;
-            if (!string.IsNullOrEmpty(dto.CareerLevel)) user.CareerLevel = dto.CareerLevel;
+            if (dto.CareerLevel.HasValue) user.CareerLevel = dto.CareerLevel.Value;
             if (dto.ExperienceYears.HasValue) user.ExperienceYears = dto.ExperienceYears.Value;
+            if (!string.IsNullOrEmpty(dto.Phone)) user.PhoneNumber = dto.Phone;
+
+            // Handle new image upload
+            if (dto.Image != null)
+            {
+                var uploadsFolder = Path.Combine(_env.WebRootPath ?? "wwwroot", "ImagePath");
+                if (!Directory.Exists(uploadsFolder))
+                    Directory.CreateDirectory(uploadsFolder);
+
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(dto.Image.FileName);
+                var filePath = Path.Combine(uploadsFolder, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await dto.Image.CopyToAsync(stream);
+                }
+
+                // Optional: delete old image (if not default)
+                if (!string.IsNullOrEmpty(user.ImagePath) && !user.ImagePath.Contains("default.png"))
+                {
+                    var oldFilePath = Path.Combine(_env.WebRootPath ?? "wwwroot", user.ImagePath.TrimStart('/'));
+                    if (System.IO.File.Exists(oldFilePath))
+                        System.IO.File.Delete(oldFilePath);
+                }
+
+                user.ImagePath = $"/ImagePath/{fileName}";
+            }
 
             var result = await _userManager.UpdateAsync(user);
 
@@ -150,6 +210,7 @@ namespace Dawam_backend.Controllers
 
             return BadRequest(result.Errors);
         }
+
 
         [HttpPost("logout")]
         [Authorize]
@@ -162,8 +223,7 @@ namespace Dawam_backend.Controllers
 
         [HttpDelete("me")]
         [Authorize]
-        public async Task<IActionResult> DeleteMe()
-        {
+        public async Task<IActionResult> DeleteMe(){
             // Get current user ID from token
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -187,39 +247,52 @@ namespace Dawam_backend.Controllers
             return Ok(new { message = "Your account has been deactivated." });
         }
 
-        private async Task<string> GenerateJwtToken(ApplicationUser user)
+        [HttpPost("forgot-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
         {
-            // Prepare the claims (user info)
-            var claims = new List<Claim>
-    {
-        new Claim(JwtRegisteredClaimNames.Sub, user.Id),
-        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-        new Claim(ClaimTypes.Name, user.FullName),
-        new Claim(ClaimTypes.Email, user.Email),
-    };
+            if (!ModelState.IsValid)
+                return BadRequest("Invalid email format");
 
-            // Add user roles as claims
-            var userRoles = await _userManager.GetRolesAsync(user);
-            foreach (var role in userRoles)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, role));
-            }
+            var user = await _userManager.FindByEmailAsync(forgotPasswordDto.Email);
+            if (user == null || !user.IsActive)
+                return Ok(); // Prevent email enumeration
 
-            // Set up JWT key and signing credentials
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var encodedToken = WebUtility.UrlEncode(token);
+            var resetUrl = $"{_configuration["EmailSettings:ClientURL"]}/reset-password?userId={user.Id}&token={encodedToken}";
 
-            // Create the JWT token
-            var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                claims: claims,
-                expires: DateTime.Now.AddMinutes(Convert.ToDouble(_configuration["Jwt:ExpireInMinutes"])),
-                signingCredentials: creds
-            );
+            var emailBody = $@"<h1>Password Reset Request</h1>
+                      <p>Click the link below to reset your password:</p>
+                      <a href='{resetUrl}'>{resetUrl}</a>
+                      <p>This link expires in 24 hours.</p>";
 
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            await _emailService.SendEmailAsync(user.Email, "Password Reset Request", emailBody);
+
+            return Ok(new { message = "Password reset link sent to email" });
         }
 
+        [HttpPost("reset-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var user = await _userManager.FindByIdAsync(resetDto.UserId);
+            if (user == null || !user.IsActive)
+                return BadRequest("Invalid request");
+
+            var decodedToken = WebUtility.UrlDecode(resetDto.Token);
+            var result = await _userManager.ResetPasswordAsync(user, decodedToken, resetDto.NewPassword);
+
+            if (result.Succeeded)
+                return Ok(new { message = "Password reset successful" });
+
+            return BadRequest(result.Errors);
+        }
+
+
     }
- }
+
+}
