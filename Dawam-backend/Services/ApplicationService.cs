@@ -72,7 +72,8 @@ namespace Dawam_backend.Services
              YearsOfExperience=a.YearsOfExperience,
              ExpectedSalary=a.ExpectedSalary,
              CVFilePath=a.CVFilePath,
-             Slug=a.User.Slug
+             Slug=a.User.Slug,
+             ImagePath=a.User.ImagePath
             
            
          })

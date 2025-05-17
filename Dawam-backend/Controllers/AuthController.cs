@@ -58,7 +58,7 @@ namespace Dawam_backend.Controllers
                 };
 
                 var result = await _userManager.CreateAsync(user, registerDto.Password);
-
+                
                 if (result.Succeeded)
                 {
                     // Generate unique slug
@@ -283,8 +283,8 @@ namespace Dawam_backend.Controllers
             if (user == null || !user.IsActive)
                 return BadRequest("Invalid request");
 
-            var decodedToken = WebUtility.UrlDecode(resetDto.Token);
-            var result = await _userManager.ResetPasswordAsync(user, decodedToken, resetDto.NewPassword);
+            //var decodedToken = WebUtility.UrlDecode(resetDto.Token);
+            var result = await _userManager.ResetPasswordAsync(user, resetDto.Token, resetDto.NewPassword);
 
             if (result.Succeeded)
                 return Ok(new { message = "Password reset successful" });
