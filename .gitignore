@@ -4,4 +4,4 @@ obj/
 *.user
 *.suo
 *.db
-/Dawam-Backend/appsetting.json
+Dawam-backend/appsettings.json

@@ -33,7 +33,7 @@ namespace Dawam_backend.Controllers
                 if (!roles.Contains("Admin"))
                 {
                     nonAdminUsers.Add(new
-                    {
+                    {   user.Slug,
                         user.Id,
                         user.FullName,
                         user.Email,
