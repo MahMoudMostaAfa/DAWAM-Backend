@@ -11,6 +11,7 @@
         public string Phone { get; set; }
         public string CVFilePath { get; set; }
         public string Slug { get; set; }
+        public string ImagePath { get; set; }
 
         public DateTime AppliedAt { get; set; }
     }

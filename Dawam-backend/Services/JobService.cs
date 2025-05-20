@@ -4,6 +4,8 @@ using Dawam_backend.DTOs.jobs;
 using Dawam_backend.Models;
 using Dawam_backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Stripe;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 
 namespace Dawam_backend.Services
@@ -76,10 +78,22 @@ namespace Dawam_backend.Services
                 CategoryName = j.Category.Name
             }).ToListAsync();
 
+            var jobsWithLocalTime = jobs.Select(j => new PageJobDto
+            {
+                Id = j.Id,
+                Title = j.Title,
+                Description = j.Description,
+                JobType = j.JobType,
+                Location = j.Location,
+                CareerLevel = j.CareerLevel,
+                CreatedAt = TimeZoneInfo.ConvertTimeFromUtc(j.CreatedAt, TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time")),
+                CategoryName = j.CategoryName
+            }).ToList();
+
             return new PagedJobResultDto
             {
                 TotalCount = totalCount,
-                Jobs = jobs
+                Jobs = jobsWithLocalTime
             };
         }
 
@@ -103,7 +117,7 @@ namespace Dawam_backend.Services
                 JobType = job.JobType,
                 Location = job.Location,
                 CareerLevel = job.CareerLevel,
-                CreatedAt = job.CreatedAt,
+                CreatedAt = TimeZoneInfo.ConvertTimeFromUtc(job.CreatedAt, TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time")),
                 IsClosed = job.IsClosed,
                 IsApplied = IsApplied,
                 IsSaved = IsSaved,

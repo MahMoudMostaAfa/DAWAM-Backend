@@ -31,6 +31,7 @@ namespace Dawam_backend.Controllers
         [HttpPost("{jobId}")]
         public async Task<IActionResult> SaveJob(int jobId)
         {
+           
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             try
@@ -47,6 +48,7 @@ namespace Dawam_backend.Controllers
         [HttpDelete("{jobId}")]
         public async Task<IActionResult> UnsaveJob(int jobId)
         {
+           
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             var removed = await _savedJobService.UnsaveJobAsync(userId, jobId);

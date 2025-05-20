@@ -29,7 +29,12 @@ namespace Dawam_backend.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetJobById(int id)
         {
+
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            //Console.WriteLine("---------------------------------");
+            //Console.WriteLine(userId);
+
             var job = await _jobService.GetJobByIdAsync(id,userId);
             if (job == null) return NotFound();
 
@@ -68,6 +73,7 @@ namespace Dawam_backend.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteJob(int id)
         {
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var userRole = User.FindFirstValue(ClaimTypes.Role);
             var success = await _jobService.DeleteJobAsync(id, userId, userRole);

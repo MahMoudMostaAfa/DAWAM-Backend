@@ -2,7 +2,7 @@
 {
     public enum JobTypeE
     {
-        FullTime,
+        FullTime,   
         PartTime,
         Remote
     }
