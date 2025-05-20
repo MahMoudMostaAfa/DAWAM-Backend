@@ -68,7 +68,16 @@ Dawam is a full-stack job portal platform tailored for both job seekers and job 
 ## 📸 Screenshots
 
 <div align="center">
-<img src="images/LOGO-LANDSCAPE.png" alt="logo"  />
+<img src="images/1.png" alt="logo"  />
+</div>
+<div align="center">
+<img src="images/2.png" alt="logo"  />
+</div>
+<div align="center">
+<img src="images/3.png" alt="logo"  />
+</div>
+<div align="center">
+<img src="images/4.png" alt="logo"  />
 </div>
 
 > *(Add screenshots here if available)*
