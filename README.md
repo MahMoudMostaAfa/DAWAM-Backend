@@ -80,8 +80,6 @@ Dawam is a full-stack job portal platform tailored for both job seekers and job 
 <img src="images/4.png" alt="logo"  />
 </div>
 
-> *(Add screenshots here if available)*
-
 ## 🔗 Live Demo
 
 👉 [https://dawamdepi.netlify.app/](https://dawamdepi.netlify.app/)
