@@ -1,3 +1,7 @@
+<div align="center">
+<img src="images/LOGO-LANDSCAPE.png" alt="logo"  />
+</div>
+
 # 💼 Dawam - Smart Job Portal
 
 Dawam is a full-stack job portal platform tailored for both job seekers and job posters, with a powerful admin dashboard and integrated premium features. Developed as a graduation project for DEPI.
@@ -64,7 +68,7 @@ Dawam is a full-stack job portal platform tailored for both job seekers and job 
 ## 📸 Screenshots
 
 <div align="center">
-<img src="images/LOGO-LANDSCAPE.png" alt="Coder"  />
+<img src="images/LOGO-LANDSCAPE.png" alt="logo"  />
 </div>
 
 > *(Add screenshots here if available)*
