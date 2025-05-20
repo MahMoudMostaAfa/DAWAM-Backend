@@ -3,6 +3,7 @@ using Dawam_backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Dawam_backend.Models;
 using Dawam_backend.DTOs.Applications;
+using Dawam_backend.DTOs.jobs;
 
 namespace Dawam_backend.Services
 {
@@ -53,13 +54,24 @@ namespace Dawam_backend.Services
                     JobType = a.Application.Job.JobType
                 })
                 .ToListAsync();
+            var applicationsWithLocal = applications.Select(a => new UserApplicationDto
+            {
+                Id = a.Id,
+                JobId = a.JobId,
+                JobTitle = a.JobTitle,
+                AppliedAt = TimeZoneInfo.ConvertTimeFromUtc(a.AppliedAt, TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time")),
+                Status = a.Status,
+                PosterName = a.PosterName,
+                CareerLevel = a.CareerLevel,
+                JobType = a.JobType
+            }).ToList();
 
-            return applications;
+            return applicationsWithLocal;
         }
 
         public async Task<IEnumerable<ApplicationDto>> GetApplicationsByJobIdAsync(int jobId, string jobPosterId)
         {
-            return await _context.Applications
+          var applications= await _context.Applications
          .Where(a => a.JobId == jobId && a.Job.PostedBy == jobPosterId)
          .Select(a => new ApplicationDto
          {
@@ -78,6 +90,23 @@ namespace Dawam_backend.Services
            
          })
          .ToListAsync();
+
+             var applicationsWithLocal = applications.Select(a => new ApplicationDto
+             {
+                 Id = a.Id,
+                 UserFullName = a.UserFullName,
+                 UserEmail = a.UserEmail,
+                 AppliedAt = TimeZoneInfo.ConvertTimeFromUtc(a.AppliedAt, TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time")),
+                 Phone = a.Phone,
+                 PreviousExperience = a.PreviousExperience,
+                 YearsOfExperience = a.YearsOfExperience,
+                 ExpectedSalary = a.ExpectedSalary,
+                 CVFilePath = a.CVFilePath,
+                 Slug = a.Slug,
+                 ImagePath = a.ImagePath
+             }).ToList();
+
+            return applicationsWithLocal;
         }
 
 
