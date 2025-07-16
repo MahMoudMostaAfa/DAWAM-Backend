@@ -23,6 +23,7 @@ namespace Dawam_backend.Services
                 Subject = subject,
                 Body = message,
                 IsBodyHtml = true
+                
             };
             mailMessage.To.Add(toEmail);
 
